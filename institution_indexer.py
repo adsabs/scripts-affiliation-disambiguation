@@ -2,10 +2,9 @@ import sys
 import invenio.bibrecord as bibrecord
 import solr
 
-SOLR_URL = 'http://labs.adsabs.harvard.edu/affiliations/solr'
-HTTP_USER = 'benoit'
-HTTP_PASS = 'thisisthesolrpassword'
-CONNECTION = solr.SolrConnection(SOLR_URL, http_user=HTTP_USER, http_pass=HTTP_PASS)
+from config import solr_url, http_user, http_pass
+
+CONNECTION = solr.SolrConnection(solr_url, http_user=http_user, http_pass=http_pass)
 
 INDEX_FIELDS = {
         'institution': ['110__a', '110__t', '110__u', '110__x', '410__a', '410__g'],
