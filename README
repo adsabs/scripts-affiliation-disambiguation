@@ -2,3 +2,17 @@ A set of scripts to interact with the affiliation disambiguation tool.
 
 Author: Benoit Thiell <bthiell@cfa.harvard.edu>
 License: GPL
+
+== Institution searcher ==
+
+Here is an example of how to use the functionality as a library:
+
+    In [1]: import institution_searcher
+
+    In [2]: institution_searcher.search_institution('CERN, Geneva')
+    Out[2]: u'902725'
+
+Here is an example of how to use the functionality as a script:
+
+    $ ./institution_searcher.py 'CERN, Geneva'
+    902725

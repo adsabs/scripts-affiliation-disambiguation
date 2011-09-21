@@ -1,7 +1,9 @@
+#!/usr/bin/python
+
 import solr
 import sys
 
-from config import solr_url, http_user, http_pass
+from local_config import solr_url, http_user, http_pass
 
 CONNECTION = solr.SolrConnection(solr_url, http_user=http_user, http_pass=http_pass)
 

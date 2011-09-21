@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 import os
 import re
 import solr
@@ -6,7 +8,7 @@ import urllib2
 
 import invenio.bibrecord as bibrecord
 
-from config import solr_url, http_user, http_pass
+from local_config import solr_url, http_user, http_pass
 
 CONNECTION = solr.SolrConnection(solr_url, http_user=http_user, http_pass=http_pass)
 
