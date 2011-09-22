@@ -3,9 +3,9 @@
 import solr
 import sys
 
-from local_config import solr_url, http_user, http_pass
+from local_config import SOLR_URL, HTTP_USER, HTTP_PASS, SCORE_PERCENTAGE
 
-CONNECTION = solr.SolrConnection(solr_url, http_user=http_user, http_pass=http_pass)
+CONNECTION = solr.SolrConnection(SOLR_URL, http_user=HTTP_USER, http_pass=HTTP_PASS)
 
 def search_institution(institution):
     """
@@ -13,11 +13,15 @@ def search_institution(institution):
     """
     response = CONNECTION.query(institution, defType='lucene')
     if response.numFound > 0:
-        match = response.results[0]
-        return match['id']
+        minimum_score = response.results[0]['score'] * SCORE_PERCENTAGE
+        for result in response.results:
+            score = float(result['score'])
+            if score >= minimum_score:
+                print '%.2f' % result, result['id'], result['display_name']
+            else:
+                break
     else:
-        return None
+        print 'No result found.'
 
 if __name__ == '__main__':    
-    institution_id = search_institution(sys.argv[-1])
-    print institution_id
+    search_institution(sys.argv[-1])
