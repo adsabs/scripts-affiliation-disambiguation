@@ -17,7 +17,7 @@ def search_institution(institution):
         for result in response.results:
             score = float(result['score'])
             if score >= minimum_score:
-                print '%.2f' % result, result['id'], result['display_name']
+                print '%.2f' % score, result['id'], result['display_name']
             else:
                 break
     else:
