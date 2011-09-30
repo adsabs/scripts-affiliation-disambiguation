@@ -23,6 +23,10 @@ INDEX_FIELDS = {
         'country_code': ['371__g'],
         }
 
+def delete_solr_documents():
+    CONNECTION.delete_query('*:*')
+    CONNECTION.commit()
+
 def get_institution_marcxml():
     """
     Downloads the Inspire institution database.
@@ -60,7 +64,9 @@ def index_records(records):
     """
     Indexes all the institution records and then commits.
     """
-    CONNECTION.add_many([get_indexable_data(record) for record in records])
+    CONNECTION.add_many([get_indexable_data(record)
+                         for record in records
+                         if not record_is_deleted(record)])
 
 def get_indexable_data(record):
     """
@@ -86,10 +92,18 @@ def get_indexable_data(record):
 
     return data
 
+def record_is_deleted(record):
+    """
+    Checks if a record is deleted.
+    """
+    return bibrecord.record_get_field_value(record, '980', '', '', 'c') == 'DELETED'
+
 if __name__ == '__main__':
     print time.asctime() + ': Delete all previous institution files.'
     for path in os.listdir('etc'):
         os.remove('etc/' + path)
+    print time.asctime() + ': Delete all documents in Solr.'
+    delete_solr_documents()
     print time.asctime() + ': Download the Inspire institution database.'
     get_institution_marcxml()
     print time.asctime() + ': Indexing in Solr.'
