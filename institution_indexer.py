@@ -3,6 +3,7 @@
 import os
 import re
 import solr
+import sys
 import time
 import urllib2
 
@@ -13,7 +14,7 @@ from local_config import SOLR_URL, HTTP_USER, HTTP_PASS
 CONNECTION = solr.SolrConnection(SOLR_URL, http_user=HTTP_USER, http_pass=HTTP_PASS)
 
 INDEX_FIELDS = {
-        'institution': ['110__a', '110__t', '110__u', '110__x', '410__a', '410__g'],
+        'institution': ['110__a', '110__t', '110__u', '110__x'],
         'department': ['110__b'],
         'address': ['371__a'],
         'city': ['371__b'],
@@ -80,6 +81,8 @@ def get_indexable_data(record):
             bibrecord.record_get_field_value(record, '110', '', '', 'u') or \
             bibrecord.record_get_field_value(record, '110', '', '', 'a')
     data['display_name'] = display_name.decode('utf-8')
+    desy_icn = bibrecord.record_get_field_value(record, '110', '', '', 'u')
+    data['desy_icn'] = desy_icn.decode('utf-8')
 
     for index, tags in INDEX_FIELDS.items():
         values = []
@@ -99,13 +102,14 @@ def record_is_deleted(record):
     return bibrecord.record_get_field_value(record, '980', '', '', 'c') == 'DELETED'
 
 if __name__ == '__main__':
-    print time.asctime() + ': Delete all previous institution files.'
-    for path in os.listdir('etc'):
-        os.remove('etc/' + path)
+    if sys.argv[-1] == '--download':
+        print time.asctime() + ': Delete all previous institution files.'
+        for path in os.listdir('etc'):
+            os.remove('etc/' + path)
+        print time.asctime() + ': Download the Inspire institution database.'
+        get_institution_marcxml()
     print time.asctime() + ': Delete all documents in Solr.'
     delete_solr_documents()
-    print time.asctime() + ': Download the Inspire institution database.'
-    get_institution_marcxml()
     print time.asctime() + ': Indexing in Solr.'
     for path in sorted(os.listdir('etc')):
         print time.asctime() + ': File %s.' % path
