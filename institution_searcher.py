@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+from celery.task import task
 import re
 import solr
 import sys
@@ -7,6 +8,9 @@ import sys
 from local_config import SOLR_URL, HTTP_USER, HTTP_PASS, SCORE_PERCENTAGE
 
 CONNECTION = solr.SolrConnection(SOLR_URL, http_user=HTTP_USER, http_pass=HTTP_PASS)
+
+RE_CLEAN_AFF = re.compile('[()[\]:\-/&]')
+RE_MULTIPLE_SPACES = re.compile('\s\s+')
 
 def search_institution(institution):
     """
@@ -32,13 +36,22 @@ def get_match(institution):
         raise
 
     if response.numFound > 0:
-        return response.results[0]['display_name']
+        return RE_MULTIPLE_SPACES.sub(' ', response.results[0]['display_name'].strip())
+        
     else:
         return None
 
+@task
+def match_institutions(institutions):
+    results = []
+    for icn, institution in institutions:
+        match = get_match(institution)
+        results.append((icn, institution, match))
+    return results
+
 def _clean_affiliation(aff):
-    aff = re.sub('[()[\]:\-/&]', ' ', aff)
-    aff = re.sub('\s\s+', ' ', aff)
+    aff = RE_CLEAN_AFF.sub(' ', aff)
+    aff = RE_MULTIPLE_SPACES.sub(' ', aff)
     return aff.strip()
 
 if __name__ == '__main__':
