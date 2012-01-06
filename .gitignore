@@ -1,3 +1,5 @@
 local_config.py
 etc
 desy_affiliations
+icns.marshal
+desy_affs.py
