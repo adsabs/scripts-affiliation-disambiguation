@@ -15,7 +15,7 @@ RE_CLEAN_AFF = re.compile('[()[\]:\-/&]')
 RE_MULTIPLE_SPACES = re.compile('\s\s+')
 
 import logging
-logging.basicConfig(filename='error.log', level=logging.DEBUG)
+logging.basicConfig(filename='error.log', level=logging.WARNING)
 
 def search_institution(institution, clean_up=True):
     """
@@ -70,15 +70,15 @@ def search_institutions_parallel(institutions, clean_up=True, number_of_processe
         results.append(r)
 
     # Now we wait that all tasks complete.
-    while not any([not result.ready() for result in results]):
+    while any([not result.ready() for result in results]):
         time.sleep(0.1)
 
    # Extract the results.
-    out = []
+    bunched_results = []
     for result in results:
-        out += result.result
+        bunched_results += result.result
 
-    return out
+    return bunched_results
 
 def get_best_matches(institution, minimum_score=SCORE_PERCENTAGE):
     """
