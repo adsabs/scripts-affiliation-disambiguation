@@ -15,6 +15,7 @@ CONNECTION = solr.SolrConnection(SOLR_URL, http_user=HTTP_USER, http_pass=HTTP_P
 
 INDEX_FIELDS = {
         'institution': ['110__a', '110__t', '110__u', '110__x'],
+        'institution_acronym': ['110__a', '110__t', '110__u', '110__x'],
         'department': ['110__b'],
         'address': ['371__a'],
         'city': ['371__b'],
@@ -92,6 +93,12 @@ def get_indexable_data(record):
                 values.append(value.decode('utf-8'))
         if values:
             data[index] = list(set(values))
+
+    old = bibrecord.record_get_field_value(record, '110', '', '', 'u')
+    new = bibrecord.record_get_field_value(record, '110', '', '', 't')
+
+    if old and new and old != new:
+        open('old_new.txt', 'a').write('%s\t%s\n' % (old, new))
 
     return data
 
