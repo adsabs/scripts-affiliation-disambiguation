@@ -9,7 +9,7 @@ Here is an example of how to use the functionality as a library:
 
     In [1]: import institution_searcher
 
-    In [2]: institution_searcher.search_institution('CERN, Geneva')
+    In [2]: institution_searcher.get_best_matches('CERN, Geneva')
     Out[2]: u'902725'
 
 Here is an example of how to use the functionality as a script:

@@ -4,6 +4,8 @@ from celery.task import task
 import re
 import solr
 import sys
+import time
+import json
 
 from local_config import SOLR_URL, HTTP_USER, HTTP_PASS, SCORE_PERCENTAGE
 
@@ -12,14 +14,80 @@ CONNECTION = solr.SolrConnection(SOLR_URL, http_user=HTTP_USER, http_pass=HTTP_P
 RE_CLEAN_AFF = re.compile('[()[\]:\-/&]')
 RE_MULTIPLE_SPACES = re.compile('\s\s+')
 
-def search_institution(institution, minimum_score=SCORE_PERCENTAGE):
+import logging
+logging.basicConfig(filename='error.log', level=logging.DEBUG)
+
+def search_institution(institution, clean_up=True):
+    """
+    Searches an institution and returns the response object.
+    """
+    if clean_up:
+        institution = _clean_affiliation(institution)
+
+    try:
+        response = CONNECTION.query(institution)
+    except Exception, e:
+        error = {
+                'institution': institution,
+                'clean_up': clean_up,
+                'time': time.asctime(),
+                'exception': e.reason,
+                }
+        logging.warning(json.dumps(error))
+        return None
+
+    return response.results
+
+@task
+def search_institutions(institutions, clean_up=True):
+    """
+    Searches for multiple institutions.
+    """
+    results = []
+    for institution in institutions:
+        result = search_institution(institution, clean_up)
+        results.append((institution, result))
+
+    return results
+
+def search_institutions_parallel(institutions, clean_up=True, number_of_processes=20):
+    """
+    Search for multiple institutions with multiple processes.
+    """
+    if number_of_processes <= 0:
+        print 'Incorrect number of processes: %d' % number_of_processes
+        return
+
+    results = []
+    chunk_size = len(institutions) / number_of_processes or 1
+
+    while institutions:
+        # Get a chunk of institutions.
+        chunk = institutions[:chunk_size]
+        institutions = institutions[chunk_size:]
+        # Create the task and store the result object.
+        r = search_institutions.delay(chunk)
+        results.append(r)
+
+    # Now we wait that all tasks complete.
+    while not any([not result.ready() for result in results]):
+        time.sleep(0.1)
+
+   # Extract the results.
+    out = []
+    for result in results:
+        out += result.result
+
+    return out
+
+def get_best_matches(institution, minimum_score=SCORE_PERCENTAGE):
     """
     Searches an institution and returns the best match i.e. the best result.
     """
-    response = CONNECTION.query(_clean_affiliation(institution))
-    if response.numFound > 0:
-        minimum_score = response.results[0]['score'] * minimum_score
-        for result in response.results:
+    results = search_institution(institution)
+    if results:
+        minimum_score = results[0]['score'] * minimum_score
+        for result in results:
             score = float(result['score'])
             if score >= minimum_score:
                 print '%.2f' % score, result['id'], result['display_name']
@@ -30,44 +98,44 @@ def search_institution(institution, minimum_score=SCORE_PERCENTAGE):
 
 def get_match(institution):
     try:
-        response = CONNECTION.query(_clean_affiliation(institution))
+        results = search_institution(institution)
     except:
         print _clean_affiliation(institution)
         open('/tmp/solr_errors', 'a').write(_clean_affiliation(institution) + '\n')
         raise
 
-    if response.numFound > 0:
-        first_match_name = RE_MULTIPLE_SPACES.sub(' ', response.results[0]['display_name'].strip())
-        if response.numFound == 1:
+    if results:
+        first_match_name = RE_MULTIPLE_SPACES.sub(' ', results[0]['display_name'].strip())
+        if len(results) == 1:
             return (first_match_name, -1)
-        else: 
-            score = get_separation_score(response)
+        else:
+            score = get_separation_score(results)
             return (first_match_name, score)
     else:
         return None
 
-def get_separation_score(response):
+def get_separation_score(results):
     """
     For a Solr response, compute the separation score which is derived from the
     ratio between the two first Solr scores.
     """
-    score1 = response.results[0]['score']
-    score2 = response.results[1]['score']
+    score1 = results[0]['score']
+    score2 = results[1]['score']
 
     return (1 - score2 / score1) * 100
 
 def get_top_results(institution, n):
     try:
-        response = CONNECTION.query(_clean_affiliation(institution))
+        results = search_institution(institution)
     except:
         print _clean_affiliation(institution)
         raise
 
-    if response.numFound > 0:
+    if results:
         out = []
         for i in range(n):
             try:
-                result = response.results[i]
+                result = results[i]
             except IndexError:
                 break
             score = result['score']
@@ -78,7 +146,7 @@ def get_top_results(institution, n):
         return None
 
 @task
-def search_institutions(institutions):
+def get_best_matchess(institutions):
     results = []
     for institution in institutions:
         match = get_match(institution)
@@ -111,4 +179,4 @@ def _clean_affiliation(aff):
     return aff.strip()
 
 if __name__ == '__main__':
-    search_institution(sys.argv[-1])
+    get_best_matches(sys.argv[-1])

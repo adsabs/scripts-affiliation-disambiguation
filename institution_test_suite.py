@@ -15,7 +15,7 @@ def get_icns(reextract=False):
         import desy_affs
         icns = desy_affs.get_icns()
         os.chdir('..')
-        
+
         # Find the match file between old and new ICNs.
         match = dict(line.strip().split('\t') for line in open('old_new.txt').readlines())
 
@@ -73,27 +73,6 @@ def analyse_icns(res, icns):
                     ))
     return sorted(out)
 
-
-def search_institutions(institutions):
-    results = []
-    # Divide equally the institutions among the celeryd processes. 
-    chunk_size = len(institutions) / PROCESS_NUMBER or 1
-
-    while institutions:
-        chunk = institutions[:chunk_size]
-        institutions = institutions[chunk_size:]
-        r = s.search_institutions.delay(chunk)
-        results.append(r)
-
-    while not all([r[1].ready() for r in results]):
-        time.sleep(0.1)
-
-    out = []
-    for r in results:
-        out += r.result
-
-    return out
-
 def test(icns):
     if isinstance(icns, dict):
         icns = extend_icns(icns)
@@ -132,14 +111,14 @@ def compute_ratios(matches):
     for inst, results in get_two_first_results(matches):
         if results and len(results) >= 2:
             out.append((inst, float(int(results[1][0] / results[0][0] * 20)) / 20))
-    
+
     return out
 
 def display_ratios(ratios):
     clustered = defaultdict(list)
     for inst, ratio in ratios:
         clustered[ratio].append(clustered)
-    
+
     for i in [float(i) / 20 for i in range(0, 21)]:
         print len(clustered[i])
 
