@@ -39,46 +39,38 @@ def search_institution(institution, clean_up=True):
     return response.results
 
 @task
-def search_institutions(institutions, clean_up=True):
+def search_institutions(institutions, clean_up=True, number_of_processes=1):
     """
     Searches for multiple institutions.
     """
     results = []
-    for institution in institutions:
-        result = search_institution(institution, clean_up)
-        results.append((institution, result))
 
-    return results
-
-def search_institutions_parallel(institutions, clean_up=True, number_of_processes=20):
-    """
-    Search for multiple institutions with multiple processes.
-    """
-    if number_of_processes <= 0:
+    if number_of_processes < 1:
         print 'Incorrect number of processes: %d' % number_of_processes
         return
+    elif number_of_processes == 1:
+        for institution in institutions:
+            result = search_institution(institution, clean_up)
+            results.append((institution, result))
+    else:
+        # Perform a parallelized search.
+        task_results = []
+        chunk_size = len(institutions) / number_of_processes or 1
 
-    results = []
-    chunk_size = len(institutions) / number_of_processes or 1
+        for chunk in (institutions[i:i+chunk_size] for i in xrange(0, len(institutions), chunk_size)):
+            # Create the task and store the result object.
+            r = search_institutions.delay(chunk, clean_up, number_of_processes=1)
+            task_results.append(r)
 
-    while institutions:
-        # Get a chunk of institutions.
-        chunk = institutions[:chunk_size]
-        institutions = institutions[chunk_size:]
-        # Create the task and store the result object.
-        r = search_institutions.delay(chunk)
-        results.append(r)
+        # Now we wait that all tasks complete.
+        while any([not task_result.ready() for task_result in task_results]):
+            time.sleep(0.1)
 
-    # Now we wait that all tasks complete.
-    while any([not result.ready() for result in results]):
-        time.sleep(0.1)
+       # Extract the results.
+        for task_result in task_results:
+            results += task_result.result
 
-   # Extract the results.
-    bunched_results = []
-    for result in results:
-        bunched_results += result.result
-
-    return bunched_results
+    return results
 
 def get_best_matches(institution, minimum_score=SCORE_PERCENTAGE):
     """
