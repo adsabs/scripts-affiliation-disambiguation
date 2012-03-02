@@ -21,14 +21,14 @@ def search_institution(institution, clean_up=True):
     """
     Searches an institution and returns the response object.
     """
-    if clean_up:
-        institution = _clean_affiliation(institution)
+    clean_institution = clean_up and _clean_affiliation(institution) or institution
 
     try:
         response = CONNECTION.query(institution)
     except Exception, e:
         error = {
                 'institution': institution,
+                'clean_institution': clean_institution,
                 'clean_up': clean_up,
                 'time': time.asctime(),
                 'exception': e.reason,
