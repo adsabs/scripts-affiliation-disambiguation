@@ -24,7 +24,7 @@ def search_institution(institution, clean_up=True):
     clean_institution = clean_up and _clean_affiliation(institution) or institution
 
     try:
-        response = CONNECTION.query(institution)
+        response = CONNECTION.query(institution, fields=('id', 'display_name', 'score'))
     except Exception, e:
         error = {
                 'institution': institution,
@@ -56,6 +56,9 @@ def search_institutions(institutions, clean_up=True, number_of_processes=1):
         # Perform a parallelized search.
         task_results = []
         chunk_size = len(institutions) / number_of_processes or 1
+        if chunk_size > 1000:
+            # Limit maximum size of the chunks to 1,000 institutions.
+            chunk_size = 1000
 
         for chunk in (institutions[i:i+chunk_size] for i in xrange(0, len(institutions), chunk_size)):
             # Create the task and store the result object.
@@ -167,7 +170,8 @@ def get_match_ratio(institutions):
 def _clean_affiliation(aff):
     aff = RE_CLEAN_AFF.sub(' ', aff)
     aff = RE_MULTIPLE_SPACES.sub(' ', aff)
-    aff = re.sub('(^|\s)OR($|\s)', r'\1"OR"\2', aff)
+    # Put reserved search terms in between quotes.
+    aff = re.sub('(^|\s)(OR|AND|NOT)($|\s)', r'\1"\2"\3', aff)
     return aff.strip()
 
 if __name__ == '__main__':
