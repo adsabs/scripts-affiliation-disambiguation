@@ -24,7 +24,7 @@ def search_institution(institution, clean_up=True):
     clean_institution = clean_up and _clean_affiliation(institution) or institution
 
     try:
-        response = CONNECTION.query(institution, fields=('id', 'display_name', 'score'))
+        response = CONNECTION.query(clean_institution, fields=('id', 'display_name', 'score'))
     except Exception, e:
         error = {
                 'institution': institution,
@@ -46,7 +46,7 @@ def search_institutions(institutions, clean_up=True, number_of_processes=1):
     results = []
 
     if number_of_processes < 1:
-        print 'Incorrect number of processes: %d' % number_of_processes
+        logging.ERROR('Incorrect number of processes: %d' % number_of_processes)
         return
     elif number_of_processes == 1:
         for institution in institutions:
@@ -139,17 +139,6 @@ def get_top_results(institution, n):
         return out
     else:
         return None
-
-@task
-def get_best_matchess(institutions):
-    results = []
-    for institution in institutions:
-        match = get_match(institution)
-        if match is None:
-            results.append((institution, None, None))
-        else:
-            results.append((institution, match[0], match[1]))
-    return results
 
 @task
 def match_institutions(institutions):
