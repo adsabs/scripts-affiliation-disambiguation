@@ -11,9 +11,6 @@ from local_config import SOLR_URL, HTTP_USER, HTTP_PASS, SCORE_PERCENTAGE
 
 CONNECTION = solr.SolrConnection(SOLR_URL, http_user=HTTP_USER, http_pass=HTTP_PASS)
 
-RE_CLEAN_AFF = re.compile('[()[\]:\-/&]')
-RE_MULTIPLE_SPACES = re.compile('\s\s+')
-
 import logging
 logging.basicConfig(filename='error.log', level=logging.WARNING)
 
@@ -33,32 +30,28 @@ def search_institution(institution, clean_up=True):
                 'time': time.asctime(),
                 'exception': e.reason,
                 }
-        logging.warning(json.dumps(error))
+        logging.error(json.dumps(error))
         return None
 
-    return response.results
+    return list(response.results)
 
 @task
 def search_institutions(institutions, clean_up=True, number_of_processes=1):
     """
     Searches for multiple institutions.
     """
+    institutions = [institution.decode('utf8') for institution in institutions]
     results = []
 
-    if number_of_processes < 1:
-        logging.ERROR('Incorrect number of processes: %d' % number_of_processes)
-        return
-    elif number_of_processes == 1:
+    if number_of_processes == 1:
         for institution in institutions:
             result = search_institution(institution, clean_up)
             results.append((institution, result))
-    else:
+    elif number_of_processes > 1:
         # Perform a parallelized search.
         task_results = []
         chunk_size = len(institutions) / number_of_processes or 1
-        if chunk_size > 1000:
-            # Limit maximum size of the chunks to 1,000 institutions.
-            chunk_size = 1000
+        chunk_size = min(chunksize, 1000)
 
         for chunk in (institutions[i:i+chunk_size] for i in xrange(0, len(institutions), chunk_size)):
             # Create the task and store the result object.
@@ -72,6 +65,9 @@ def search_institutions(institutions, clean_up=True, number_of_processes=1):
        # Extract the results.
         for task_result in task_results:
             results += task_result.result
+    else:
+        logging.ERROR('Incorrect number of processes: %d' % number_of_processes)
+        return
 
     return results
 
@@ -140,6 +136,24 @@ def get_top_results(institution, n):
     else:
         return None
 
+def output_results(results):
+    output = []
+    for result in results:
+        if not result[1]:
+            output.append(result[0])
+        elif len(result[1]) == 1:
+            name1 = result[1][0]['display_name']
+            output.append('%s\t%s' % (result[0], name1))
+        else:
+            name1 = result[1][0]['display_name']
+            name2 = result[1][1]['display_name']
+            score1 = result[1][0]['score']
+            score2 = result[1][1]['score']
+            ratio = score2 / score1
+            output.append('%s\t%s\t%s\t%.2f' % (result[0], name1, name2, ratio))
+
+    return '\n'.join(output).encode('utf-8')
+
 @task
 def match_institutions(institutions):
     results = []
@@ -156,11 +170,12 @@ def get_match_ratio(institutions):
         results.append((institution, top_results))
     return results
 
+RE_CLEAN_AFF = re.compile('[()[\]:\-/&]')
+
 def _clean_affiliation(aff):
     aff = RE_CLEAN_AFF.sub(' ', aff)
-    aff = RE_MULTIPLE_SPACES.sub(' ', aff)
     # Put reserved search terms in between quotes.
-    aff = re.sub('(^|\s)(OR|AND|NOT)($|\s)', r'\1"\2"\3', aff)
+    aff = re.sub('(^|\s)(or|and|not|OR|AND|NOT)($|\s)', r'\1 \3', aff)
     return aff.strip()
 
 if __name__ == '__main__':
