@@ -66,9 +66,15 @@ def index_records(records):
     """
     Indexes all the institution records and then commits.
     """
-    CONNECTION.add_many([get_indexable_data(record)
-                         for record in records
-                         if not record_is_deleted(record)])
+    to_add = []
+    for record in records:
+        if not record_is_deleted(record):
+            data = get_indexable_data(record)
+            if not data['display_name'].startswith('Unlisted') and \
+                not data['display_name'].startswith('obsolete'):
+                to_add.append(data)
+
+    CONNECTION.add_many(to_add)
 
 def get_indexable_data(record):
     """
