@@ -14,11 +14,15 @@ CONNECTION = solr.SolrConnection(SOLR_URL, http_user=HTTP_USER, http_pass=HTTP_P
 import logging
 logging.basicConfig(filename='error.log', level=logging.WARNING)
 
-def search_institution(institution, clean_up=True):
+def search_institution(institution, clean_up=True, logic="OR", fuzzy=False):
     """
     Searches an institution and returns the response object.
     """
     clean_institution = clean_up and _clean_affiliation(institution) or institution
+    if fuzzy:
+        clean_institution = re.sub('(\s|$)', r'~\1', clean_institution)
+    if logic != 'OR':
+        clean_institution = clean_institution.replace(' ', ' %s ' % logic)
 
     try:
         response = CONNECTION.query(clean_institution, fields=('id', 'display_name', 'score'))
@@ -170,10 +174,11 @@ def get_match_ratio(institutions):
         results.append((institution, top_results))
     return results
 
-RE_CLEAN_AFF = re.compile('[()[\]:\-/&]')
+RE_CLEAN_AFF = re.compile('[()[\]:&"]')
 
 def _clean_affiliation(aff):
     aff = RE_CLEAN_AFF.sub(' ', aff)
+    aff = re.sub('(^|\s)-', r'\1', aff)
     # Put reserved search terms in between quotes.
     aff = re.sub('(^|\s)(or|and|not|OR|AND|NOT)($|\s)', r'\1 \3', aff)
     return aff.strip()
