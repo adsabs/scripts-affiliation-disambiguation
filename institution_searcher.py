@@ -22,6 +22,8 @@ from local_config import SOLR_URL, HTTP_USER, HTTP_PASS, SCORE_PERCENTAGE
 
 CONNECTION = solr.SolrConnection(SOLR_URL, http_user=HTTP_USER, http_pass=HTTP_PASS)
 
+RE_MULTIPLE_SPACES = re.compile('\s+')
+
 def search_institution(institution, clean_up=True, logic="OR", fuzzy=False):
     """
     Searches an institution and returns the response object.
@@ -130,7 +132,7 @@ def get_separation_score(results):
     score1 = results[0]['score']
     score2 = results[1]['score']
 
-    return (1 - score2 / score1) * 100
+    return (1 - score2 / score1)
 
 def get_top_results(institution, n):
     try:
