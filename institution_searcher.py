@@ -1,18 +1,26 @@
 #!/usr/bin/python
 
-from celery.task import task
+import logging
+logging.basicConfig(filename='error.log', level=logging.WARNING)
+
 import re
 import solr
 import sys
 import time
 import json
 
+try:
+    from celery.task import task
+except ImportError:
+    # If celery is not available, fake a decorator.
+    def task(func):
+        def empty_decorator(*args, **kwargs):
+            return func(*args, **kwargs)
+        return empty_decorator
+
 from local_config import SOLR_URL, HTTP_USER, HTTP_PASS, SCORE_PERCENTAGE
 
 CONNECTION = solr.SolrConnection(SOLR_URL, http_user=HTTP_USER, http_pass=HTTP_PASS)
-
-import logging
-logging.basicConfig(filename='error.log', level=logging.WARNING)
 
 def search_institution(institution, clean_up=True, logic="OR", fuzzy=False):
     """
@@ -55,11 +63,16 @@ def search_institutions(institutions, clean_up=True, number_of_processes=1):
         # Perform a parallelized search.
         task_results = []
         chunk_size = len(institutions) / number_of_processes or 1
-        chunk_size = min(chunksize, 1000)
+        chunk_size = min(chunk_size, 1000)
 
         for chunk in (institutions[i:i+chunk_size] for i in xrange(0, len(institutions), chunk_size)):
             # Create the task and store the result object.
-            r = search_institutions.delay(chunk, clean_up, number_of_processes=1)
+            try:
+                r = search_institutions.delay(chunk, clean_up, number_of_processes=1)
+            except AttributeError:
+                print >> sys.stderr, "Error: Multiprocessing is not available without celery."
+                return
+
             task_results.append(r)
 
         # Now we wait that all tasks complete.
