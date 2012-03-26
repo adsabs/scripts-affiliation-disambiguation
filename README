@@ -3,16 +3,34 @@ A set of scripts to interact with the affiliation disambiguation tool.
 Author: Benoit Thiell <bthiell@cfa.harvard.edu>
 License: GPL
 
-== Institution searcher ==
+== Requirements ==
 
-Here is an example of how to use the functionality as a library:
+* Python 2.6+
+* Solrpy (https://code.google.com/p/solrpy/)
+* Celery (http://celeryproject.org/) is optional and allows to run the search with multiple processes.
 
-    In [1]: import institution_searcher
+== Examples ==
 
-    In [2]: institution_searcher.get_best_matches('CERN, Geneva')
-    Out[2]: u'902725'
+=== Return the best match ===
 
-Here is an example of how to use the functionality as a script:
+    In [1]: from institution_searcher import get_match
 
-    $ ./institution_searcher.py 'CERN, Geneva'
-    902725
+    In [2]: get_match('Center for Astrophysics, Cambridge, MA')
+    Out[2]: (u'Harvard-Smithsonian Ctr. Astrophys., Cambridge', 0.39160477649239001)
+
+The first value is the new ICN if it exists, or the ICN. The second value is the score of the match which is computed from the ratio between the score of the first and second item of the results list. The closer to 1, the better the score.
+
+=== Get the full results ===
+
+    In [1]: from institution_searcher import search_institution
+
+    In [2]: search_institution('CERN')
+    Out[2]: 
+    [{u'display_name': u'CERN, Geneva',
+      u'id': u'902725',
+      u'score': 5.1152430000000004},
+     {u'display_name': u'ECFA', u'id': u'905995', u'score': 2.5764835000000001},
+     {u'display_name': u'UCT-CERN Res. Ctr.',
+      u'id': u'910762',
+      u'score': 2.0611868000000002}]
+
