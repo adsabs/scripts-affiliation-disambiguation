@@ -54,7 +54,6 @@ def search_institutions(institutions, clean_up=True, number_of_processes=1):
     """
     Searches for multiple institutions.
     """
-    institutions = [institution.decode('utf8') for institution in institutions]
     results = []
 
     if number_of_processes == 1:
