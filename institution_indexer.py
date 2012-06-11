@@ -131,7 +131,7 @@ def get_indexable_data(record):
     new = bibrecord.record_get_field_value(record, '110', '', '', 't')
 
     if old and new and old != new:
-        open('old_new.txt', 'a').write('%s\t%s\n' % (old, new))
+        open('etc/old_new.txt', 'a').write('%s\t%s\n' % (old, new))
 
     return data
 
