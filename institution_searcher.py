@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 import logging
-logging.basicConfig(filename='error.log', level=logging.WARNING)
+logging.basicConfig(filename='var/error.log', level=logging.WARNING)
 
 import ConfigParser
 import re
