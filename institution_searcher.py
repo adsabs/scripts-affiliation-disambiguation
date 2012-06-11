@@ -3,6 +3,7 @@
 import logging
 logging.basicConfig(filename='error.log', level=logging.WARNING)
 
+import ConfigParser
 import re
 import solr
 import sys
@@ -18,11 +19,16 @@ except ImportError:
             return func(*args, **kwargs)
         return empty_decorator
 
-from local_config import SOLR_URL, HTTP_USER, HTTP_PASS, SCORE_PERCENTAGE
+cfg = ConfigParser.ConfigParser()
+cfg.read('accounts.cfg')
 
-CONNECTION = solr.SolrConnection(SOLR_URL, http_user=HTTP_USER, http_pass=HTTP_PASS)
+CONNECTION = solr.SolrConnection(cfg.get('solr', 'url'),
+        http_user=cfg.get('solr', 'user'),
+        http_pass=cfg.get('solr', 'password'))
 
 RE_MULTIPLE_SPACES = re.compile('\s+')
+
+SCORE_PERCENTAGE = 0.8
 
 def search_institution(institution, clean_up=True, logic="OR", fuzzy=False):
     """

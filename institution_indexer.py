@@ -76,6 +76,28 @@ def index_records(records):
 
     CONNECTION.add_many(to_add)
 
+def get_name_variants(record):
+    """
+    Return indexable values in the 410 field.
+    """
+    name_variants = set()
+    if '410' in record:
+        fields = bibrecord.record_get_field_instances(record, '410')
+        for field in fields:
+            values = bibrecord.field_get_subfield_values(field, 'a')
+            if values:
+                if 'ADS' in bibrecord.field_get_subfield_values(field, '9'):
+                    # Always index field with source ADS.
+                    for value in values:
+                        name_variants.add(value.decode('utf_8'))
+                else:
+                    # Disregard uppercase space-separated fields.
+                    for value in values:
+                        if not re.match('\s*[A-Z]+\s[A-Z ]+$', value):
+                            name_variants.add(value.decode('utf_8'))
+
+    return list(name_variants)
+
 def get_indexable_data(record):
     """
     Returns indexable data for a Bibrecord institution record in Solr.
@@ -87,18 +109,23 @@ def get_indexable_data(record):
     display_name = bibrecord.record_get_field_value(record, '110', '', '', 't') or \
             bibrecord.record_get_field_value(record, '110', '', '', 'u') or \
             bibrecord.record_get_field_value(record, '110', '', '', 'a')
-    data['display_name'] = display_name.decode('utf-8')
+    data['display_name'] = display_name.decode('utf_8')
     desy_icn = bibrecord.record_get_field_value(record, '110', '', '', 'u')
-    data['desy_icn'] = desy_icn.decode('utf-8')
+    data['desy_icn'] = desy_icn.decode('utf_8')
 
     for index, tags in INDEX_FIELDS.items():
         values = []
         for tag in tags:
             for value in bibrecord.record_get_field_values(record, tag[:3],
                     tag[3], tag[4], tag[5]):
-                values.append(value.decode('utf-8'))
+                values.append(value.decode('utf_8'))
         if values:
             data[index] = list(set(values))
+
+    # Name variants
+    name_variants = get_name_variants(record)
+    if name_variants:
+        data['name_variants'] = name_variants
 
     old = bibrecord.record_get_field_value(record, '110', '', '', 'u')
     new = bibrecord.record_get_field_value(record, '110', '', '', 't')
