@@ -9,8 +9,8 @@ import solr
 import sys
 import time
 
-if not os.exists('var/error.log'):
-    if not os.exists('var'):
+if not os.path.exists('var/error.log'):
+    if not os.path.exists('var'):
         os.mkdir('var')
     open('var/error.log', 'w').close() 
 
