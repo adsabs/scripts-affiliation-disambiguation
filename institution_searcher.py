@@ -8,6 +8,9 @@ import re
 import solr
 import sys
 import time
+import multiprocessing
+
+NUM_OF_CPUS = multiprocessing.cpu_count()
 
 if not os.path.exists('var/error.log'):
     if not os.path.exists('var'):
@@ -62,7 +65,7 @@ def search_institution(institution, clean_up=True, logic="OR", fuzzy=False):
     return list(response.results)
 
 @task
-def search_institutions(institutions, clean_up=True, number_of_processes=1):
+def search_institutions(institutions, clean_up=True, number_of_processes=NUM_OF_CPUS - 2):
     """
     Searches for multiple institutions.
     """
