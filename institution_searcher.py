@@ -1,6 +1,13 @@
 #!/usr/bin/python
 
+import ConfigParser
+import json
 import logging
+import os
+import re
+import solr
+import sys
+import time
 
 if not os.exists('var/error.log'):
     if not os.exists('var'):
@@ -8,13 +15,6 @@ if not os.exists('var/error.log'):
     open('var/error.log', 'w').close() 
 
 logging.basicConfig(filename='var/error.log', level=logging.WARNING)
-
-import ConfigParser
-import re
-import solr
-import sys
-import time
-import json
 
 try:
     from celery.task import task
