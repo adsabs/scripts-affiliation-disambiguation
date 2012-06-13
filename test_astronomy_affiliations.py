@@ -4,7 +4,7 @@ import sys
 
 import institution_searcher as s
 import spreadsheet_interface as spreadsheet
-from ads_refine.clean_ads_affiliations import _preclean_affiliation
+from clean_ads_affiliations import _preclean_affiliation
 from ads.Unicode import UnicodeHandlerError
 
 def get_affiliations(path='/proj/ads/abstracts/ast/update/affils.jan12.merged'):
