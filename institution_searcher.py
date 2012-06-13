@@ -1,6 +1,12 @@
 #!/usr/bin/python
 
 import logging
+
+if not os.exists('var/error.log'):
+    if not os.exists('var'):
+        os.mkdir('var')
+    open('var/error.log', 'w').close() 
+
 logging.basicConfig(filename='var/error.log', level=logging.WARNING)
 
 import ConfigParser
