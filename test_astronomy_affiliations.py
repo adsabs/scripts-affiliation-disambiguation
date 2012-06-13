@@ -84,7 +84,7 @@ if __name__ == '__main__':
 
     print 'Got %d affiliations.' % len(affiliations)
     print 'Disambiguating...'
-    res = s.search_institutions(affiliations.keys(), number_of_processes=20)
+    res = s.search_institutions(affiliations.keys())
     print 'Done disambiguating.'
     unmatched = [r for r in res if not r[1]]
     upload_unmatched(unmatched)
