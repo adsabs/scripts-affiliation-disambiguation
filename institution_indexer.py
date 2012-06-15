@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import ConfigParser
 import os
 import re
 import solr
@@ -9,9 +10,12 @@ import urllib2
 
 import invenio.bibrecord as bibrecord
 
-from local_config import SOLR_URL, HTTP_USER, HTTP_PASS
+cfg = ConfigParser.ConfigParser()
+cfg.read('accounts.cfg')
 
-CONNECTION = solr.SolrConnection(SOLR_URL, http_user=HTTP_USER, http_pass=HTTP_PASS)
+CONNECTION = solr.SolrConnection(cfg.get('solr', 'url'),
+        http_user=cfg.get('solr', 'user'),
+        http_pass=cfg.get('solr', 'password'))
 
 INDEX_FIELDS = {
         'institution': ['110__a', '110__t', '110__u', '110__x'],
