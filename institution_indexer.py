@@ -8,7 +8,11 @@ import sys
 import time
 import urllib2
 
-import invenio.bibrecord as bibrecord
+try:
+    import invenio.bibrecord as bibrecord
+except ImportError:
+    # Invenio is not installed, use fallback standalone bibrecord.
+    import bibrecord
 
 cfg = ConfigParser.ConfigParser()
 cfg.read('accounts.cfg')
