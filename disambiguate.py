@@ -30,28 +30,26 @@ def get_affiliations(path):
         affiliation = re.sub('\(?[a-zA-Z0-9.-]+@[a-zA-Z,.-]+\)?', ' ', affiliation)
         # Format spaces.
         affiliation = re.sub('\s\+', ' ', affiliation.strip())
-        affiliations[affiliation.encode('utf8')] += 1
+        affiliations[affiliation.encode('utf_8')] += 1
         affiliation_number += 1
 
     STATS.update({
-        'affs': str(affiliation_number),
-        'problemaffs': str(problem_affiliation_number),
-        'uniqueaffs': str(len(affiliations)),
+        'affs': affiliation_number,
+        'problemaffs': problem_affiliation_number,
+        'uniqueaffs': len(affiliations),
         })
     return affiliations
 
 def output_results(results, path):
     lines = []
     for affiliation, match, score in results:
-        affiliation = affiliation.encode('utf-8')
+        affiliation = affiliation
         if match is None:
             match = ''
         else:
-            match = match.encode('utf-8')
+            match = match
         if score is None:
             score = ''
-        else:
-            score = str(score)
 
         lines.append('\t'.join((affiliation, match, score)))
     out = '\n'.join(lines)
@@ -62,7 +60,7 @@ def upload_matched(matched, spreadsheet_name, output_number):
     matched = [(affiliations[aff], aff, res) for aff, res in matched]
     print 'Found %d matched affiliations.' % len(matched)
     for number, aff, res in sorted(matched, key=lambda r: int(r[0]), reverse=True)[:output_number]:
-        d = {'affiliation': aff, 'number': str(number)}
+        d = {'affiliation': aff, 'number': number}
         d['first'] = res[0]['display_name']
         if len(res) > 1:
             d['second'] = res[1]['display_name']
@@ -73,7 +71,7 @@ def upload_matched(matched, spreadsheet_name, output_number):
     spreadsheet_interface.upload_data(output, spreadsheet_name, 'Matched')
 
 def upload_unmatched(unmatched, spreadsheet_name, output_number):
-    output = [{'affiliation': r[0], 'number': str(affiliations[r[0]])} for r in unmatched]
+    output = [{'affiliation': r[0], 'number': affiliations[r[0]]} for r in unmatched]
     output = sorted(output, key=lambda r: int(r['number']), reverse=True)[:output_number]
     print 'Found %d unmatched affiliations.' % len(output)
     print 'Exporting %d results to Google Docs.' % len(output)
@@ -124,10 +122,10 @@ if __name__ == '__main__':
 
     spreadsheet_interface.connect()
     unmatched = [r for r in res if not r[1]]
-    STATS['unmatched'] = str(len(unmatched))
+    STATS['unmatched'] = len(unmatched)
     upload_unmatched(unmatched, spreadsheet_name, output_number)
     matched = [r for r in res if r[1]]
-    STATS['matched'] = str(len(matched))
+    STATS['matched'] = len(matched)
     upload_matched(matched, spreadsheet_name, output_number)
 
     spreadsheet_interface.upload_statistics(STATS, spreadsheet_name)

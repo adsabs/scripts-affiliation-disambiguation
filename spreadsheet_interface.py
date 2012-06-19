@@ -21,6 +21,7 @@ def upload_data(data, spreadsheet_name, title='None'):
     db = CLIENT.GetDatabases(name=spreadsheet_name)[0]
     table = db.CreateTable('%s (%s)' % (title, time.strftime('%b %d, %Y')), data[0].keys())
     for record in data:
+        format_record(record)
         try:
             table.AddRecord(record)
         except:
@@ -32,6 +33,18 @@ def upload_statistics(statistics, spreadsheet_name):
     """
     Adds a stat entry to the statistics sheet of the spreadsheet.
     """
+    format_record(statistics)
+
     db = CLIENT.GetDatabases(name=spreadsheet_name)[0]
     table = db.GetTables(name="Statistics")[0]
     table.AddRecord(statistics)
+
+def format_record(record):
+    """
+    Makes sure that everything is an encoded UTF-8 string.
+    """
+    for k, v in record.items():
+        if isinstance(v, unicode):
+            record[k] = v.encode('utf_8')
+        elif not isinstance(v, str):
+            record[k] = str(v)
