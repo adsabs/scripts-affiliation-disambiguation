@@ -33,6 +33,9 @@ INDEX_FIELDS = {
         'country_code': ['371__g'],
         }
 
+if not os.path.exists('etc'):
+    os.mkdir('etc')
+
 def delete_solr_documents():
     CONNECTION.delete_query('*:*')
     CONNECTION.commit()
