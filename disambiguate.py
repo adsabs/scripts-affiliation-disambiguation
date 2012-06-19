@@ -57,7 +57,7 @@ def output_results(results, path):
     out = '\n'.join(lines)
     open(path, 'w').write(out)
 
-def upload_matched(matched, document_name, output_number):
+def upload_matched(matched, spreadsheet_name, output_number):
     output = []
     matched = [(affiliations[aff], aff, res) for aff, res in matched]
     print 'Found %d matched affiliations.' % len(matched)
@@ -70,15 +70,15 @@ def upload_matched(matched, document_name, output_number):
         output.append(d)
     print 'Exporting %d results to Google Docs.' % len(output)
 
-    spreadsheet_interface.upload_data(output, document_name, 'Matched')
+    spreadsheet_interface.upload_data(output, spreadsheet_name, 'Matched')
 
-def upload_unmatched(unmatched, document_name, output_number):
+def upload_unmatched(unmatched, spreadsheet_name, output_number):
     output = [{'affiliation': r[0], 'number': str(affiliations[r[0]])} for r in unmatched]
     output = sorted(output, key=lambda r: int(r['number']), reverse=True)[:output_number]
     print 'Found %d unmatched affiliations.' % len(output)
     print 'Exporting %d results to Google Docs.' % len(output)
 
-    spreadsheet_interface.upload_data(output, document_name, 'Unmatched')
+    spreadsheet_interface.upload_data(output, spreadsheet_name, 'Unmatched')
 
 if __name__ == '__main__':
     from optparse import OptionParser
@@ -95,7 +95,7 @@ if __name__ == '__main__':
         parser.error("incorrect number of arguments")
     else:
         affiliation_file = args[0]
-        spreadsheet = args[1]
+        spreadsheet_name = args[1]
 
     try:
         output_number = int(options.output_number)
@@ -122,14 +122,12 @@ if __name__ == '__main__':
     res = s.search_institutions(affiliations.keys())
     print 'Done disambiguating.'
 
-    document_name = 'Physics affiliations'
-
     spreadsheet_interface.connect()
     unmatched = [r for r in res if not r[1]]
     STATS['unmatched'] = str(len(unmatched))
-    upload_unmatched(unmatched, document_name, output_number)
+    upload_unmatched(unmatched, spreadsheet_name, output_number)
     matched = [r for r in res if r[1]]
     STATS['matched'] = str(len(matched))
-    upload_matched(matched, document_name, output_number)
+    upload_matched(matched, spreadsheet_name, output_number)
 
-    spreadsheet_interface.upload_statistics(STATS, document_name)
+    spreadsheet_interface.upload_statistics(STATS, spreadsheet_name)

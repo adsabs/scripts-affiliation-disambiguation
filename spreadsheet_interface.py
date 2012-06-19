@@ -17,8 +17,8 @@ def connect():
             cfg.get('spreadsheet', 'password'))
     return CLIENT
 
-def upload_data(data, document_name="Astronomy affiliations disambiguation", title='None'):
-    db = CLIENT.GetDatabases(name=document_name)[0]
+def upload_data(data, spreadsheet_name, title='None'):
+    db = CLIENT.GetDatabases(name=spreadsheet_name)[0]
     table = db.CreateTable('%s (%s)' % (title, time.strftime('%b %d, %Y')), data[0].keys())
     for record in data:
         try:
@@ -28,10 +28,10 @@ def upload_data(data, document_name="Astronomy affiliations disambiguation", tit
             time.sleep(1)
             table.AddRecord(record)
 
-def upload_statistics(statistics, document_name):
+def upload_statistics(statistics, spreadsheet_name):
     """
     Adds a stat entry to the statistics sheet of the spreadsheet.
     """
-    db = CLIENT.GetDatabases(name=document_name)[0]
+    db = CLIENT.GetDatabases(name=spreadsheet_name)[0]
     table = db.GetTables(name="Statistics")[0]
     table.AddRecord(statistics)
