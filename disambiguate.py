@@ -55,7 +55,7 @@ def output_results(results, path):
     out = '\n'.join(lines)
     open(path, 'w').write(out)
 
-def upload_matched(matched, spreadsheet_name, output_number):
+def upload_matched(matched, spreadsheet_name, output_number, affiliations):
     output = []
     matched = [(affiliations[aff], aff, res) for aff, res in matched]
     print 'Found %d matched affiliations.' % len(matched)
@@ -70,13 +70,45 @@ def upload_matched(matched, spreadsheet_name, output_number):
 
     spreadsheet_interface.upload_data(output, spreadsheet_name, 'Matched')
 
-def upload_unmatched(unmatched, spreadsheet_name, output_number):
+def upload_unmatched(unmatched, spreadsheet_name, output_number, affiliations):
     output = [{'affiliation': r[0], 'number': affiliations[r[0]]} for r in unmatched]
     output = sorted(output, key=lambda r: int(r['number']), reverse=True)[:output_number]
     print 'Found %d unmatched affiliations.' % len(output)
     print 'Exporting %d results to Google Docs.' % len(output)
 
     spreadsheet_interface.upload_data(output, spreadsheet_name, 'Unmatched')
+
+def main(affiliation_file, spreadsheet_name, everything, output_name):
+    """
+    Run the affiliation disambiguation and upload the unmatched affiliations
+    to Google Docs.
+    """
+    STATS['datetime'] = time.asctime()
+    print 'Reading affiliations from %s.' % affiliation_file
+    try:
+        affiliations = get_affiliations(affiliation_file)
+    except IOError, e:
+        print 'Impossible to read file: %s' % e
+
+    print 'Found %d unique affiliations.' % len(affiliations)
+
+    if not everything:
+        # Let's just disambiguate the most frequent affiliations.
+        affiliations = dict(sorted(affiliations.items(), key=lambda aff: aff[1], reverse=True)[:output_number])
+
+    print 'Disambiguating...'
+    res = s.search_institutions(affiliations.keys())
+    print 'Done disambiguating.'
+
+    spreadsheet_interface.connect()
+    unmatched = [r for r in res if not r[1]]
+    STATS['unmatched'] = len(unmatched)
+    upload_unmatched(unmatched, spreadsheet_name, output_number, affiliations)
+    matched = [r for r in res if r[1]]
+    STATS['matched'] = len(matched)
+    upload_matched(matched, spreadsheet_name, output_number, affiliations)
+
+    spreadsheet_interface.upload_statistics(STATS, spreadsheet_name)
 
 if __name__ == '__main__':
     from optparse import OptionParser
@@ -101,31 +133,4 @@ if __name__ == '__main__':
     except TypeError:
         parser.error('wrong output number')
 
-    # Run the affiliation disambiguation and upload the unmatched affiliations
-    # to Google Docs.
-    STATS['datetime'] = time.asctime()
-    print 'Reading affiliations from %s.' % affiliation_file
-    try:
-        affiliations = get_affiliations(affiliation_file)
-    except IOError, e:
-        print 'Impossible to read file: %s' % e
-
-    print 'Found %d unique affiliations.' % len(affiliations)
-
-    if not options.everything:
-        # Let's just disambiguate the most frequent affiliations.
-        affiliations = dict(sorted(affiliations.items(), key=lambda aff: aff[1], reverse=True)[:output_number])
-
-    print 'Disambiguating...'
-    res = s.search_institutions(affiliations.keys())
-    print 'Done disambiguating.'
-
-    spreadsheet_interface.connect()
-    unmatched = [r for r in res if not r[1]]
-    STATS['unmatched'] = len(unmatched)
-    upload_unmatched(unmatched, spreadsheet_name, output_number)
-    matched = [r for r in res if r[1]]
-    STATS['matched'] = len(matched)
-    upload_matched(matched, spreadsheet_name, output_number)
-
-    spreadsheet_interface.upload_statistics(STATS, spreadsheet_name)
+    main(affiliation_file, spreadsheet_name, options.everything, output_number)
