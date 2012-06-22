@@ -211,7 +211,7 @@ def _clean_affiliation(aff):
     # Put reserved search terms in between quotes.
     aff = re.sub('(^|\s)(or|and|not|OR|AND|NOT)($|\s)', r'\1 \3', aff)
     # Hack to allow separate token search when separated by slash or semicolon.
-    aff = re.sub('[;,/]\s*', ' ', aff)
+    aff = re.sub('[;,/-]', ' ', aff)
     return aff.strip()
 
 if __name__ == '__main__':
