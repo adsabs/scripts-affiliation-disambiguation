@@ -1,4 +1,5 @@
 from collections import defaultdict
+import os
 import re
 import time
 
@@ -84,6 +85,7 @@ def main(affiliation_file, spreadsheet_name, everything, output_name):
     to Google Docs.
     """
     STATS['datetime'] = time.asctime()
+    STATS['affiliationfile'] = os.path.basename(affiliation_file)
     print 'Reading affiliations from %s.' % affiliation_file
     try:
         affiliations = get_affiliations(affiliation_file)
