@@ -9,6 +9,7 @@ import solr
 import sys
 import time
 import multiprocessing
+import unicodedata
 
 NUM_OF_CPUS = multiprocessing.cpu_count()
 
@@ -39,7 +40,7 @@ RE_MULTIPLE_SPACES = re.compile('\s+')
 
 SCORE_PERCENTAGE = 0.8
 
-def search_institution(institution, clean_up=True, logic="OR", fuzzy=False):
+def search_institution(institution, clean_up=True, logic="OR", fuzzy=False, postprocess=False, fields=('id', 'display_name', 'score')):
     """
     Searches an institution and returns the response object.
     """
@@ -50,7 +51,7 @@ def search_institution(institution, clean_up=True, logic="OR", fuzzy=False):
         clean_institution = clean_institution.replace(' ', ' %s ' % logic)
 
     try:
-        response = CONNECTION.query(clean_institution, fields=('id', 'display_name', 'score'))
+        response = CONNECTION.query(clean_institution, fields=fields)
     except Exception, e:
         error = {
                 'institution': institution,
@@ -62,7 +63,31 @@ def search_institution(institution, clean_up=True, logic="OR", fuzzy=False):
         logging.error(json.dumps(error))
         return None
 
-    return list(response.results)
+    results = list(response.results)
+    if postprocess == True:
+        process_results(clean_institution, results)
+
+    return results
+
+def process_results(query, results):
+    """
+    Perform post-processing of the results to improve the matching.
+    """
+    if len(results) > 1:
+        if get_separation_score(results) <= 0.2:
+            query = query.decode('utf_8')
+            name0 = results[0]['display_name']
+            name1 = results[1]['display_name']
+
+            fquery = fingerprint(query)
+            fname0 = fingerprint(name0)
+            fname1 = fingerprint(name1)
+
+            p0 = len(fname0.intersection(fquery)) / len(fname0)
+            p1 = len(fname1.intersection(fquery)) / len(fname1)
+            if p1 > p0:
+                print 'INFO: Query "%s" now matches "%s" instead of "%s".' % (query, name1, name0)
+                results[0], results[1] = results[1], results[0]
 
 @task
 def search_institutions(institutions, clean_up=True, number_of_processes=NUM_OF_CPUS - 2):
@@ -187,6 +212,15 @@ def output_results(results):
 
     return '\n'.join(output).encode('utf-8')
 
+def strip_accents(s):
+    return ''.join((c for c in unicodedata.normalize('NFD', s) if unicodedata.category(c) != 'Mn'))
+
+def fingerprint(s):
+    """
+    Returns a set of words from the string.
+    """
+    return set(match.group() for match in re.finditer('\w\w+', s))
+
 @task
 def match_institutions(institutions):
     results = []
@@ -212,6 +246,7 @@ def _clean_affiliation(aff):
     aff = re.sub('(^|\s)(or|and|not|OR|AND|NOT)($|\s)', r'\1 \3', aff)
     # Hack to allow separate token search when separated by slash or semicolon.
     aff = re.sub('[;,/-]', ' ', aff)
+    aff = re.sub('\s\s+', ' ', aff)
     return aff.strip()
 
 if __name__ == '__main__':
