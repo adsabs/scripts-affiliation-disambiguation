@@ -79,7 +79,7 @@ def upload_unmatched(unmatched, spreadsheet_name, output_number, affiliations):
 
     spreadsheet_interface.upload_data(output, spreadsheet_name, 'Unmatched')
 
-def main(affiliation_file, spreadsheet_name, everything, output_name):
+def main(affiliation_file, spreadsheet_name, everything, output_number):
     """
     Run the affiliation disambiguation and upload the unmatched affiliations
     to Google Docs.
