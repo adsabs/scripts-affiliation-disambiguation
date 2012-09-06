@@ -17,6 +17,11 @@ def get_affiliations(path):
     """
     affiliations = defaultdict(int)
     affiliation_number, problem_affiliation_number = 0, 0
+
+    tagged_email_regex = re.compile('<EMAIL>[^<]*(<\/EMAIL>|$)')
+    untagged_email_regex = re.compile('\(?[a-zA-Z0-9.-]+@[a-zA-Z,.-]+\)?')
+    spaces_regex = re.compile('\s\s+')
+
     for line in open(path):
         try:
             affiliation = line.decode('utf-8').strip().rsplit('\t', 1)[-1]
@@ -27,10 +32,10 @@ def get_affiliations(path):
             continue
 
         # Remove emails.
-        affiliation = re.sub('<EMAIL>[^<]*(<\/EMAIL>|$)', ' ', affiliation)
-        affiliation = re.sub('\(?[a-zA-Z0-9.-]+@[a-zA-Z,.-]+\)?', ' ', affiliation)
+        affiliation = tagged_email_regex.sub(' ', affiliation)
+        affiliation = untagged_email_regex.sub(' ', affiliation)
         # Format spaces.
-        affiliation = re.sub('\s\+', ' ', affiliation.strip())
+        affiliation = spaces_regex.sub(' ', affiliation.strip())
         affiliations[affiliation.encode('utf_8')] += 1
         affiliation_number += 1
 
@@ -98,7 +103,7 @@ def main(affiliation_file, spreadsheet_name, everything, output_number):
         # Let's just disambiguate the most frequent affiliations.
         affiliations = dict(sorted(affiliations.items(), key=lambda aff: aff[1], reverse=True)[:output_number])
 
-    print 'Disambiguating...'
+    print 'Disambiguating %d affiliations...' % len(affiliations)
     res = s.search_institutions(affiliations.keys())
     print 'Done disambiguating.'
 
