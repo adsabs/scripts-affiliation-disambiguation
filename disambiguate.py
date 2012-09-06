@@ -84,6 +84,9 @@ def main(affiliation_file, spreadsheet_name, everything, output_name):
     Run the affiliation disambiguation and upload the unmatched affiliations
     to Google Docs.
     """
+    print 'Hello, World!'
+    return
+
     STATS['datetime'] = time.asctime()
     STATS['affiliationfile'] = os.path.basename(affiliation_file)
     print 'Reading affiliations from %s.' % affiliation_file
